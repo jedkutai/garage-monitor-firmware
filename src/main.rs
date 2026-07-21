@@ -12,6 +12,8 @@ use stm32f4xx_hal::{self as hal, rcc::Config};
 
 use crate::hal::{pac, prelude::*};
 
+mod constants;
+
 #[entry]
 fn main() -> ! {
     if let (Some(dp), Some(cp)) = (
@@ -19,9 +21,7 @@ fn main() -> ! {
         cortex_m::peripheral::Peripherals::take(),
     ) {
         // Run the system clock at 48 MHz using the internal oscillator.
-        let mut rcc = dp.RCC.freeze(
-            Config::hsi().sysclk(48.MHz())
-        );
+        let mut rcc = dp.RCC.freeze(Config::hsi().sysclk(48.MHz()));
 
         // The Black Pill's built-in LED is connected to PC13.
         let gpioc = dp.GPIOC.split(&mut rcc);
