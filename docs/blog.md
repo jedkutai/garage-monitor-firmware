@@ -6,7 +6,8 @@
 It took a while but I set up the enviroment to run with no_std and no_main.  
 Found a great [repo](https://github.com/stm32-rs/stm32f4xx-hal) to help with that.
 
-Connected [ST-LINK V2](Stage_1/vt_linker_v2.PNG)
+Connected [ST-LINK V2](Stage_1/vt_linker_v2.PNG)  
+[ST-LINK V2 Wiring](wiring/st_link.md)
 
 Blink test was succesful.  
 Light [on](Stage_1_/light_on.PNG)  
