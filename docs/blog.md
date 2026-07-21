@@ -6,10 +6,11 @@
 It took a while but I set up the enviroment to run with no_std and no_main.
 Found a greate repo to help with that.
 
-Connected [ST-LINK V2](Stage%201/wired.PNG)
+Connected [ST-LINK V2](Stage_1/vt_linker_v2.PNG)
 
 Blink test was succesful.
-[Light on](Stage%201/light_on.PNG)
-[Light off](Stage%201/light_off.PNG)
+Light [on](Stage_1_/light_on.PNG)
+Light [off](Stage_1_/light_off.PNG)
+
 ---
 
