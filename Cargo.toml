@@ -1,0 +1,29 @@
+[package]
+name = "garage-monitor-firmware"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cortex-m = "0.7"
+cortex-m-rt = "0.7"
+embedded-hal = "1.0"
+panic-halt = "1.0"
+
+[dependencies.stm32f4xx-hal]
+version = "0.23.0"
+features = ["stm32f411"]
+
+[profile.dev]
+debug = true
+lto = true
+
+[profile.release]
+debug = true
+lto = true
+opt-level = "s"
+
+[[bin]]
+name = "garage-monitor-firmware"
+path = "src/main.rs"
+test = false
+bench = false
