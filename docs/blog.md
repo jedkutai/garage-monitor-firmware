@@ -19,7 +19,6 @@ Light [off](Stage_1_/light_off.JPG)
 
 ### 7/22 — 16:00
 I didn't have a USB to TTL addapter so I had to wait for one to be delivered.  
-I got it connected and tested some slop code on it and it worked.
+I got it [connected](Stage_2/uart_logging.JPG) and tested some slop code on it and it worked.
 
-[Connected](Stage_2/uart_logging.JPG)
 ---
