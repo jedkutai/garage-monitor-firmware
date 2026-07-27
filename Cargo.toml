@@ -4,14 +4,26 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-cortex-m = "0.7"
 cortex-m-rt = "0.7"
-embedded-hal = "1.0"
 panic-halt = "1.0"
+embedded-hal = "1.0"
+embedded-hal-async = "1.0"
 
-[dependencies.stm32f4xx-hal]
-version = "0.23.0"
-features = ["stm32f411"]
+[dependencies.cortex-m]
+version = "0.7"
+features = ["critical-section-single-core"]
+
+[dependencies.embassy-executor]
+version = "0.9"
+features = ["arch-cortex-m", "executor-thread"]
+
+[dependencies.embassy-stm32]
+version = "0.6"
+features = ["stm32f411ce", "memory-x", "time-driver-any"]
+
+[dependencies.embassy-time]
+version = "0.5"
+features = ["tick-hz-32_768"]
 
 [profile.dev]
 debug = true

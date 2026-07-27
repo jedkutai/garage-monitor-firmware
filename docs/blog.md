@@ -61,4 +61,20 @@ Hardware hates me.
 ### 7/23 — 16:30
 Going to try to solder tonight (have no faith that it will work)  
 Ordered a sensor that is pre soldered that will arrive tomorrow.
+
+### 7/24 — 20:00
+Sensor is here. Have a bit of time before I have to go to work.
+
+### 7/24 — 20:20
+It doesn't work either. So the sensor isn't the problem.  
+It is most likely my code.
+
+### 7/25 — 17:00
+Can't really explain how but everything works now.  
+Unplugged and replugged for the 800th time and it decided to work.
+
+### 7/27 — 18:00
+I have made zero progress. Just getting error messages.
+Don't know what to do, I have tried reddit chatgpt stackoverflow etc.
+Wish I knew someone that was semi familiar with this stuff.
 ---
