@@ -1,18 +1,31 @@
 #![no_std]
 #![no_main]
 
+use core::fmt::Write as _;
+
+use bme280_rs::{AsyncBme280, Configuration, Oversampling, SensorMode};
 use embassy_executor::Spawner;
 use embassy_stm32::{
+    bind_interrupts, dma,
     gpio::{Level, Output, Speed},
-    i2c::{Config as I2cConfig, I2c},
+    i2c::{self, Config as I2cConfig, I2c},
+    peripherals,
     usart::{Config as UartConfig, UartTx},
 };
-use embassy_time::Timer;
+use embassy_time::{Delay, Timer};
+use heapless::String;
 use panic_halt as _;
 
 const BME280_ADDRESS: u8 = 0x76;
-const BME280_CHIP_ID_REGISTER: u8 = 0xD0;
-const EXPECTED_BME280_CHIP_ID: u8 = 0x60;
+
+// Connect I²C1 and its DMA channels to their interrupt handlers.
+bind_interrupts!(struct Irqs {
+    I2C1_EV => i2c::EventInterruptHandler<peripherals::I2C1>;
+    I2C1_ER => i2c::ErrorInterruptHandler<peripherals::I2C1>;
+
+    DMA1_STREAM6 => dma::InterruptHandler<peripherals::DMA1_CH6>;
+    DMA1_STREAM0 => dma::InterruptHandler<peripherals::DMA1_CH0>;
+});
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
@@ -21,55 +34,125 @@ async fn main(_spawner: Spawner) {
     // Built-in LED on pin C13.
     let mut led = Output::new(peripherals.PC13, Level::High, Speed::Low);
 
-    // Configure UART transmission on pin A9.
+    // Configure UART transmission through pin A9.
     let mut uart_config = UartConfig::default();
     uart_config.baudrate = 115_200;
 
     let mut uart = UartTx::new_blocking(peripherals.USART1, peripherals.PA9, uart_config).unwrap();
 
-    // Configure I²C1:
-    // Pin B6 = SCL
-    // Pin B7 = SDA
-    let mut i2c = I2c::new_blocking(
-        peripherals.I2C1,
-        peripherals.PB6,
-        peripherals.PB7,
-        I2cConfig::default(),
-    );
-
     uart.blocking_write(b"Garage monitor starting...\r\n")
         .unwrap();
 
-    uart.blocking_write(b"Checking BME280...\r\n").unwrap();
+    // Configure asynchronous I²C1:
+    //
+    // Pin B6 = SCL
+    // Pin B7 = SDA
+    // DMA1_CH6 = transmit DMA
+    // DMA1_CH0 = receive DMA
+    let i2c = I2c::new(
+        peripherals.I2C1,
+        peripherals.PB6,
+        peripherals.PB7,
+        peripherals.DMA1_CH6,
+        peripherals.DMA1_CH0,
+        Irqs,
+        I2cConfig::default(),
+    );
 
-    let mut chip_id = [0_u8; 1];
+    // Create the async BME280 driver.
+    //
+    // SDO is connected to GND, so the sensor address is 0x76.
+    let mut sensor = AsyncBme280::new_with_address(i2c, BME280_ADDRESS, Delay);
 
-    match i2c.blocking_write_read(BME280_ADDRESS, &[BME280_CHIP_ID_REGISTER], &mut chip_id) {
-        Ok(()) if chip_id[0] == EXPECTED_BME280_CHIP_ID => {
-            uart.blocking_write(b"BME280 confirmed: chip ID 0x60\r\n")
-                .unwrap();
-        }
+    uart.blocking_write(b"Initializing BME280...\r\n").unwrap();
 
-        Ok(()) => {
-            uart.blocking_write(b"Unexpected BME280 chip ID\r\n")
-                .unwrap();
-        }
+    // Reset the sensor and load its calibration values.
+    if sensor.init().await.is_err() {
+        uart.blocking_write(b"Failed to initialize BME280\r\n")
+            .unwrap();
 
-        Err(_) => {
-            uart.blocking_write(b"Failed to communicate with BME280\r\n")
-                .unwrap();
+        // Blink rapidly to indicate an initialization error.
+        loop {
+            led.set_low();
+            Timer::after_millis(100).await;
+
+            led.set_high();
+            Timer::after_millis(100).await;
         }
     }
 
+    // Enable temperature, pressure, and humidity measurements.
+    let sensor_config = Configuration::default()
+        .with_temperature_oversampling(Oversampling::Oversample1)
+        .with_pressure_oversampling(Oversampling::Oversample1)
+        .with_humidity_oversampling(Oversampling::Oversample1)
+        .with_sensor_mode(SensorMode::Normal);
+
+    if sensor
+        .set_sampling_configuration(sensor_config)
+        .await
+        .is_err()
+    {
+        uart.blocking_write(b"Failed to configure BME280\r\n")
+            .unwrap();
+
+        // Blink rapidly to indicate a configuration error.
+        loop {
+            led.set_low();
+            Timer::after_millis(100).await;
+
+            led.set_high();
+            Timer::after_millis(100).await;
+        }
+    }
+
+    // Allow time for the first measurement.
+    Timer::after_millis(100).await;
+
+    uart.blocking_write(b"BME280 initialized successfully.\r\n")
+        .unwrap();
+
     loop {
+        // Turn on the LED while reading the sensor.
         led.set_low();
 
-        uart.blocking_write(b"heartbeat\r\n").unwrap();
+        match sensor.read_sample().await {
+            Ok(sample) => {
+                match (sample.temperature, sample.humidity, sample.pressure) {
+                    (Some(temperature), Some(humidity), Some(pressure)) => {
+                        // The sensor returns pressure in pascals.
+                        let pressure_hpa = pressure / 100.0;
 
-        Timer::after_millis(500).await;
+                        // Store the formatted log line without heap allocation.
+                        let mut line: String<128> = String::new();
 
+                        write!(
+                            &mut line,
+                            "Temperature: {:.2} C | Humidity: {:.2}% | Pressure: {:.2} hPa\r\n",
+                            temperature, humidity, pressure_hpa,
+                        )
+                        .unwrap();
+
+                        uart.blocking_write(line.as_bytes()).unwrap();
+                    }
+
+                    _ => {
+                        uart.blocking_write(b"One or more BME280 measurements are disabled\r\n")
+                            .unwrap();
+                    }
+                }
+            }
+
+            Err(_) => {
+                uart.blocking_write(b"Failed to read BME280 measurements\r\n")
+                    .unwrap();
+            }
+        }
+
+        // Turn the LED off after the reading.
         led.set_high();
 
-        Timer::after_millis(500).await;
+        // Wait two seconds without blocking Embassy's executor.
+        Timer::after_millis(2000).await;
     }
 }

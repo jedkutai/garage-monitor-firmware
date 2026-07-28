@@ -84,4 +84,9 @@ It worked. The steps are [here](Stage_3/usb_c_flash_steps.md).
 
 ### 7/28 — 02:30
 This is so elite but it is a shame that I can't just hit cargo run to flash.
+
+### 7/28 — 03:00
+It reads temp now.
+Temp seems a bit high. Might be picking up head from wires?
+I can calibrate that later probably.
 ---

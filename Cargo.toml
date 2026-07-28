@@ -8,6 +8,7 @@ cortex-m-rt = "0.7"
 panic-halt = "1.0"
 embedded-hal = "1.0"
 embedded-hal-async = "1.0"
+heapless = "0.9"
 
 [dependencies.cortex-m]
 version = "0.7"
@@ -24,6 +25,11 @@ features = ["stm32f411ce", "memory-x", "time-driver-any"]
 [dependencies.embassy-time]
 version = "0.5"
 features = ["tick-hz-32_768"]
+
+[dependencies.bme280-rs]
+version = "0.4.1"
+default-features = false
+features = ["async"]
 
 [profile.dev]
 debug = true
