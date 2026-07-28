@@ -77,4 +77,8 @@ Unplugged and replugged for the 800th time and it decided to work.
 I have made zero progress. Just getting error messages.
 Don't know what to do, I have tried reddit chatgpt stackoverflow etc.
 Wish I knew someone that was semi familiar with this stuff.
+
+### 7/28 — 01:30
+I am switching to flashing via [usbc](Stage_3/usb_c_flash.jpg), wish me luck.
+It worked. The steps are [here](Stage_3/usb_c_flash_steps.md).
 ---
