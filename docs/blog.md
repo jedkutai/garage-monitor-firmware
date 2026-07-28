@@ -81,4 +81,7 @@ Wish I knew someone that was semi familiar with this stuff.
 ### 7/28 — 01:30
 I am switching to flashing via [usbc](Stage_3/usb_c_flash.jpg), wish me luck.
 It worked. The steps are [here](Stage_3/usb_c_flash_steps.md).
+
+### 7/28 — 02:30
+This is so elite but it is a shame that I can't just hit cargo run to flash.
 ---
