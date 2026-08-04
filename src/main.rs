@@ -1,8 +1,6 @@
 #![no_std]
 #![no_main]
 
-use core::fmt::Write as _;
-
 use bme280_rs::{AsyncBme280, Configuration, Oversampling, SensorMode};
 use embassy_executor::Spawner;
 use embassy_stm32::{
@@ -13,10 +11,15 @@ use embassy_stm32::{
     usart::{Config as UartConfig, UartTx},
 };
 use embassy_time::{Delay, Timer};
-use heapless::String;
 use panic_halt as _;
 
-const BME280_ADDRESS: u8 = 0x76;
+use crate::{
+    components::sensor_sample::SensorSample,
+    constants::setup::{BAUDRATE, BME280_ADDRESS},
+};
+
+mod components;
+mod constants;
 
 // Connect I²C1 and its DMA channels to their interrupt handlers.
 bind_interrupts!(struct Irqs {
@@ -36,7 +39,7 @@ async fn main(_spawner: Spawner) {
 
     // Configure UART transmission through pin A9.
     let mut uart_config = UartConfig::default();
-    uart_config.baudrate = 115_200;
+    uart_config.baudrate = BAUDRATE;
 
     let mut uart = UartTx::new_blocking(peripherals.USART1, peripherals.PA9, uart_config).unwrap();
 
@@ -112,35 +115,14 @@ async fn main(_spawner: Spawner) {
     uart.blocking_write(b"BME280 initialized successfully.\r\n")
         .unwrap();
 
+    let mut sensor_sample = SensorSample::new();
     loop {
         // Turn on the LED while reading the sensor.
         led.set_low();
 
         match sensor.read_sample().await {
             Ok(sample) => {
-                match (sample.temperature, sample.humidity, sample.pressure) {
-                    (Some(temperature), Some(humidity), Some(pressure)) => {
-                        // The sensor returns pressure in pascals.
-                        let pressure_hpa = pressure / 100.0;
-
-                        // Store the formatted log line without heap allocation.
-                        let mut line: String<128> = String::new();
-
-                        write!(
-                            &mut line,
-                            "Temperature: {:.2} C | Humidity: {:.2}% | Pressure: {:.2} hPa\r\n",
-                            temperature, humidity, pressure_hpa,
-                        )
-                        .unwrap();
-
-                        uart.blocking_write(line.as_bytes()).unwrap();
-                    }
-
-                    _ => {
-                        uart.blocking_write(b"One or more BME280 measurements are disabled\r\n")
-                            .unwrap();
-                    }
-                }
+                sensor_sample.update_and_log(sample, &mut uart);
             }
 
             Err(_) => {
@@ -156,3 +138,4 @@ async fn main(_spawner: Spawner) {
         Timer::after_millis(2000).await;
     }
 }
+
