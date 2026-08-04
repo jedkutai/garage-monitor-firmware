@@ -131,6 +131,7 @@ async fn main(_spawner: Spawner) {
             }
         }
 
+        Timer::after_millis(500).await;
         // Turn the LED off after the reading.
         led.set_high();
 
